@@ -33,7 +33,7 @@ aws ec2 create-transit-gateway-peering-attachment \
 PEER_STATE=$(aws ec2 describe-transit-gateway-peering-attachments --filters Name=transit-gateway-id,Values=$TGW_ID Name=state,Values=initiatingRequest,pendingAcceptance,pending,available --query 'TransitGatewayPeeringAttachments[*].State' --output text | xargs)
 
 # Wait till the attachment status is pendingAcceptance - 10 seconds delay before each check
-while [ $PEER_STATE != "pendingAcceptance" ];
+while [ "$PEER_STATE" != "pendingAcceptance" ];
 do
    sleep 10
    PEER_STATE=$(aws ec2 describe-transit-gateway-peering-attachments --filters Name=transit-gateway-id,Values=$TGW_ID Name=state,Values=initiatingRequest,pendingAcceptance,pending,available --query 'TransitGatewayPeeringAttachments[*].State' --output text | xargs)
@@ -51,7 +51,7 @@ export AWS_DEFAULT_REGION=us-east-1
 PEER_STATE=$(aws ec2 describe-transit-gateway-peering-attachments --filters Name=transit-gateway-id,Values=$TGW_ID Name=state,Values=initiatingRequest,pendingAcceptance,pending,available --query 'TransitGatewayPeeringAttachments[*].State' --output text | xargs)
 
 # Wait till the attachment status is available - 10 seconds delay before each check
-while [ $PEER_STATE != "available" ];
+while [ "$PEER_STATE" != "available" ];
 do
    sleep 10
    PEER_STATE=$(aws ec2 describe-transit-gateway-peering-attachments --filters Name=transit-gateway-id,Values=$TGW_ID Name=state,Values=initiatingRequest,pendingAcceptance,pending,available --query 'TransitGatewayPeeringAttachments[*].State' --output text | xargs)

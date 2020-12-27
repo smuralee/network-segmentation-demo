@@ -18,7 +18,7 @@ aws ec2 delete-transit-gateway-peering-attachment \
 PEER_STATE=$(aws ec2 describe-transit-gateway-peering-attachments --filters Name=transit-gateway-id,Values=$TGW_ID Name=state,Values=deleting,deleted --query 'TransitGatewayPeeringAttachments[*].State' --output text | xargs)
 
 # Wait till the attachment status is deleted - 10 seconds delay before each check
-while [ $PEER_STATE != "deleted" ];
+while [ "$PEER_STATE" != "deleted" ];
 do
    sleep 10
    PEER_STATE=$(aws ec2 describe-transit-gateway-peering-attachments --filters Name=transit-gateway-id,Values=$TGW_ID Name=state,Values=deleting,deleted --query 'TransitGatewayPeeringAttachments[*].State' --output text | xargs)
@@ -32,13 +32,50 @@ echo -e "${GREEN}Peering attachment deleted..."
 
 echo -e "${GREEN}Deleting CDK stacks..."
 
-aws cloudformation delete-stack --stack-name NetworkSegmentationGlobalManager --region $AWS_DEFAULT_REGION
-aws cloudformation delete-stack --stack-name NetworkSegmentationRouting --region $AWS_DEFAULT_REGION
-aws cloudformation delete-stack --stack-name NetworkSegmentationDemo --region $AWS_DEFAULT_REGION
+# Assign the variable
+STACK_STATE="DELETE_COMPLETE"
+
+export AWS_DEFAULT_REGION=us-east-1
+declare -a us_stacks=("NetworkSegmentationGlobalManager" "NetworkSegmentationRouting" "NetworkSegmentationDemo")
+
+for stack in "${us_stacks[@]}"
+do
+  echo -e "${GREEN}Deleting $stack stack..."
+  aws cloudformation delete-stack --stack-name $stack --region $AWS_DEFAULT_REGION
+  STACK_STATE=$(aws cloudformation describe-stacks --stack-name $stack --region $AWS_DEFAULT_REGION --query 'Stacks[*].StackStatus' --output text || echo "DELETE_COMPLETE")
+  # Wait till the stack status is DELETE_COMPLETE
+  while [ "$STACK_STATE" != "DELETE_COMPLETE" ];
+  do
+    sleep 10
+    if [ "$STACK_STATE" != "DELETE_FAILED" ]
+    then
+      aws cloudformation delete-stack --stack-name $stack --region $AWS_DEFAULT_REGION
+    fi
+    STACK_STATE=$(aws cloudformation describe-stacks --stack-name $stack --region $AWS_DEFAULT_REGION --query 'Stacks[*].StackStatus' --output text || echo "DELETE_COMPLETE")
+    echo -e "${YELLOW}Awaiting DELETE_COMPLETE status....Current status: ${STACK_STATE}"
+  done
+done
 
 export AWS_DEFAULT_REGION=eu-west-1
-aws cloudformation delete-stack --stack-name NetworkSegmentationRouting --region $AWS_DEFAULT_REGION
-aws cloudformation delete-stack --stack-name NetworkSegmentationDemo --region $AWS_DEFAULT_REGION
+declare -a eu_stacks=("NetworkSegmentationRouting" "NetworkSegmentationDemo")
 
+for stack in "${eu_stacks[@]}"
+do
+  echo -e "${GREEN}Deleting $stack stack..."
+  aws cloudformation delete-stack --stack-name $stack --region $AWS_DEFAULT_REGION
+  STACK_STATE=$(aws cloudformation describe-stacks --stack-name $stack --region $AWS_DEFAULT_REGION --query 'Stacks[*].StackStatus' --output text || echo "DELETE_COMPLETE")
+  # Wait till the stack status is DELETE_COMPLETE
+  while [ "$STACK_STATE" != "DELETE_COMPLETE" ];
+  do
+    sleep 10
+    if [ "$STACK_STATE" != "DELETE_FAILED" ]
+    then
+      aws cloudformation delete-stack --stack-name $stack --region $AWS_DEFAULT_REGION
+    fi
+    STACK_STATE=$(aws cloudformation describe-stacks --stack-name $stack --region $AWS_DEFAULT_REGION --query 'Stacks[*].StackStatus' --output text || echo "DELETE_COMPLETE")
+    echo -e "${YELLOW}Awaiting DELETE_COMPLETE status....Current status: ${STACK_STATE}"
+  done
+done
+
+echo -e "${YELLOW}You can ignore the (ValidationError) when calling the DescribeStacks operation..."
 echo -e "${GREEN}Cleanup completed..."
-
