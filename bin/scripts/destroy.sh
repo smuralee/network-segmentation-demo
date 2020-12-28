@@ -47,8 +47,9 @@ do
   while [ "$STACK_STATE" != "DELETE_COMPLETE" ];
   do
     sleep 10
-    if [ "$STACK_STATE" != "DELETE_FAILED" ]
+    if [ "$STACK_STATE" == "DELETE_FAILED" ]
     then
+      echo -e "${GREEN}Delete failed...retrying..."
       aws cloudformation delete-stack --stack-name $stack --region $AWS_DEFAULT_REGION
     fi
     STACK_STATE=$(aws cloudformation describe-stacks --stack-name $stack --region $AWS_DEFAULT_REGION --query 'Stacks[*].StackStatus' --output text || echo "DELETE_COMPLETE")
@@ -68,8 +69,9 @@ do
   while [ "$STACK_STATE" != "DELETE_COMPLETE" ];
   do
     sleep 10
-    if [ "$STACK_STATE" != "DELETE_FAILED" ]
+    if [ "$STACK_STATE" == "DELETE_FAILED" ]
     then
+      echo -e "${GREEN}Delete failed...retrying..."
       aws cloudformation delete-stack --stack-name $stack --region $AWS_DEFAULT_REGION
     fi
     STACK_STATE=$(aws cloudformation describe-stacks --stack-name $stack --region $AWS_DEFAULT_REGION --query 'Stacks[*].StackStatus' --output text || echo "DELETE_COMPLETE")
